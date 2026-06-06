@@ -3,8 +3,8 @@ require "language/node"
 class Donepack < Formula
   desc "Turn any folder into a Done-style agentic workspace for coding agents"
   homepage "https://done.dev"
-  url "https://registry.npmjs.org/done-agent-pack/-/done-agent-pack-0.1.2.tgz"
-  sha256 "f03246e18d76eaf3581ecf5cd83ff299926cd06a972a1e09f585d61725217eab"
+  url "https://registry.npmjs.org/done-agent-pack/-/done-agent-pack-0.2.0.tgz"
+  sha256 "521faaa24b9f45f909d6e406b28ec74d1d3354bfbcc92bb0210a3967bd89bebb"
   license "MIT"
 
   depends_on "node"
