@@ -1,0 +1,58 @@
+name: Bump formula on new npm release
+
+# Keeps Formula/donepack.rb in sync with the latest `done-agent-pack` release on
+# npm. Runs daily and can be triggered manually. When npm has a newer version
+# than the formula, it rewrites the tarball URL + sha256 and commits.
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # daily 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Bump formula if a newer version exists
+        run: |
+          set -euo pipefail
+          PKG=done-agent-pack
+          FORMULA=Formula/donepack.rb
+
+          LATEST="$(npm view "$PKG" version)"
+          CURRENT="$(grep -oE "${PKG}-[0-9]+\.[0-9]+\.[0-9]+\.tgz" "$FORMULA" \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+          echo "npm latest: $LATEST | formula: $CURRENT"
+
+          if [ "$LATEST" = "$CURRENT" ]; then
+            echo "Formula already up to date — nothing to do."
+            exit 0
+          fi
+
+          TARBALL="https://registry.npmjs.org/${PKG}/-/${PKG}-${LATEST}.tgz"
+          SHA="$(curl -fsSL "$TARBALL" | sha256sum | cut -d' ' -f1)"
+          echo "New tarball: $TARBALL"
+          echo "New sha256:  $SHA"
+
+          sed -i -E "s|${PKG}-[0-9]+\.[0-9]+\.[0-9]+\.tgz|${PKG}-${LATEST}.tgz|" "$FORMULA"
+          sed -i -E "s|sha256 \"[a-f0-9]{64}\"|sha256 \"${SHA}\"|" "$FORMULA"
+
+          # Sanity: ruby must still parse the formula.
+          ruby -c "$FORMULA"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FORMULA"
+          git commit -m "chore: bump donepack to ${LATEST}"
+          git push
